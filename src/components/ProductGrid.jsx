@@ -1,33 +1,45 @@
-import { useEffect } from "react";
-import { useLocation, useNavigationType } from "react-router-dom";
+import ProductCard from "@/components/ProductCard";
 
-const getHashId = (hash) => {
-  const rawId = hash.slice(1);
+function CardSkeleton() {
+  return (
+    <div className="animate-pulse">
+      <div className="aspect-[3/4] bg-muted" />
+      <div className="mt-3 h-3.5 w-3/4 bg-muted" />
+      <div className="mt-2 h-3 w-1/3 bg-muted" />
+    </div>
+  );
+}
 
-  try {
-    return decodeURIComponent(rawId);
-  } catch {
-    return rawId;
+export default function ProductGrid({
+  products,
+  loading,
+  emptyMessage = "No products yet.",
+  emptyHint,
+}) {
+  if (loading) {
+    return (
+      <div className="grid grid-cols-2 gap-x-4 gap-y-8 sm:grid-cols-3 lg:grid-cols-4">
+        {Array.from({ length: 8 }).map((_, i) => (
+          <CardSkeleton key={i} />
+        ))}
+      </div>
+    );
   }
-};
 
-export default function ScrollToTop() {
-  const { pathname, hash } = useLocation();
-  const navigationType = useNavigationType();
+  if (!products || products.length === 0) {
+    return (
+      <div className="flex flex-col items-center py-24 text-center">
+        <p className="mm-display text-3xl">{emptyMessage}</p>
+        {emptyHint && <p className="mm-eyebrow mt-3">{emptyHint}</p>}
+      </div>
+    );
+  }
 
-  useEffect(() => {
-    if (navigationType === "POP") return;
-
-    if (hash) {
-      const id = getHashId(hash);
-      const timer = window.setTimeout(() => {
-        document.getElementById(id)?.scrollIntoView({ behavior: "smooth" });
-      }, 50);
-      return () => window.clearTimeout(timer);
-    }
-
-    window.scrollTo({ top: 0, left: 0, behavior: "instant" });
-  }, [pathname, hash, navigationType]);
-
-  return null;
+  return (
+    <div className="grid grid-cols-2 gap-x-4 gap-y-8 sm:grid-cols-3 lg:grid-cols-4">
+      {products.map((product) => (
+        <ProductCard key={product.id} product={product} />
+      ))}
+    </div>
+  );
 }
