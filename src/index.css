@@ -1,0 +1,137 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+/* ÉLÉGANCE design system */
+
+@layer base {
+  :root {
+    /* ÉLÉGANCE — Carthage at Dawn palette */
+    --background: 40 30% 98%; /* Paper White #FDFCFB */
+    --foreground: 0 0% 7%; /* Deep Onyx #121212 */
+    --card: 40 30% 98%;
+    --card-foreground: 0 0% 7%;
+    --popover: 40 30% 98%;
+    --popover-foreground: 0 0% 7%;
+    --primary: 0 0% 7%; /* Deep Onyx */
+    --primary-foreground: 40 30% 98%;
+    --secondary: 40 18% 90%; /* Sun-Bleached Sand #E8E2D6 */
+    --secondary-foreground: 0 0% 7%;
+    --muted: 40 18% 90%;
+    --muted-foreground: 30 5% 35%;
+    --accent: 41 53% 56%; /* Vintage Champagne #C5A059 */
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 40 14% 88%;
+    --input: 40 14% 88%;
+    --ring: 41 53% 56%;
+    --radius: 0.125rem;
+    --font-heading: "Cormorant Garamond", ui-serif, Georgia, serif;
+    --font-body: "Inter", ui-sans-serif, system-ui, sans-serif;
+    --font-display: "Cormorant Garamond", ui-serif, Georgia, serif;
+    --font-mono: ui-monospace, SFMono-Regular, Menlo, monospace;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  html {
+    scroll-behavior: smooth;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  body {
+    @apply bg-background text-foreground font-body;
+    line-height: 1.6;
+  }
+
+  ::selection {
+    background: hsl(var(--accent));
+    color: hsl(var(--background));
+  }
+}
+
+@layer components {
+  .font-heading {
+    font-family: var(--font-heading);
+  }
+  .font-display {
+    font-family: var(--font-display);
+  }
+  /* Golden thread divider */
+  .golden-thread {
+    position: relative;
+    height: 1px;
+    background: linear-gradient(
+      90deg,
+      transparent,
+      hsl(var(--accent)),
+      transparent
+    );
+    transform: scaleX(0);
+    transform-origin: left;
+    transition: transform 1.2s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  .golden-thread.in-view {
+    transform: scaleX(1);
+  }
+  /* Editorial letter spacing */
+  .tracking-luxe {
+    letter-spacing: 0.35em;
+  }
+  .tracking-luxe-sm {
+    letter-spacing: 0.2em;
+  }
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+  /* Momentum smooth scroll feel */
+  .scroll-luxe {
+    scroll-behavior: smooth;
+  }
+  .animate-fade-up {
+    animation: fadeUp 1s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+  .animate-fade-in {
+    animation: fadeIn 1.2s ease both;
+  }
+  .animate-kerning {
+    animation: kerning 1.6s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+}
+
+@keyframes fadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(28px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes kerning {
+  from {
+    letter-spacing: 0.6em;
+    opacity: 0;
+  }
+  to {
+    letter-spacing: 0.2em;
+    opacity: 1;
+  }
+}
