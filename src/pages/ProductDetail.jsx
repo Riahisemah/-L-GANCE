@@ -1,301 +1,181 @@
-import React, { useState, useEffect } from "react";
-import { useParams, Link, useNavigate } from "react-router-dom";
-import { motion } from "framer-motion";
-import { Minus, Plus, Check, ArrowLeft, MessageCircle } from "lucide-react";
+import { useState } from "react";
+import { useParams, Link } from "react-router-dom";
+import { useProductDetail } from "@/hooks/useProductDetail";
+import { useVariantOptions } from "@/hooks/useVariantOptions";
+import { productGallery } from "@/lib/storeImage";
 import { useCart } from "@/context/CartContext";
-import { useProducts } from "@/hooks/useProducts";
-import { getProductById } from "@/data/products";
-import { whatsappLink, WHATSAPP_DISPLAY } from "@/lib/config";
-import ProductCard from "@/components/ProductCard";
-import Reveal from "@/components/Reveal";
+import { Image } from "@/components/ui/image";
+import { WHATSAPP_NUMBER } from "@/lib/categories";
+import { Minus, Plus, ShoppingBag, MessageCircle, ChevronLeft } from "lucide-react";
 
 export default function ProductDetail() {
-  const { id } = useParams();
-  const navigate = useNavigate();
-  const { addItem } = useCart();
-  const [product, setProduct] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [activeImg, setActiveImg] = useState(0);
-  const [size, setSize] = useState(null);
-  const [color, setColor] = useState(null);
-  const [qty, setQty] = useState(1);
-  const [added, setAdded] = useState(false);
+  const { slug } = useParams();
+  const d = useProductDetail(slug);
+  const { optionGroups } = useVariantOptions(d.options, d.modifiers, d.selectedOptions, d.modifierValues);
+  const { checkout, loading: cartLoading } = useCart();
+  const [activeImage, setActiveImage] = useState(0);
 
-  useEffect(() => {
-    let active = true;
-    setLoading(true);
-    setActiveImg(0);
-    setSize(null);
-    setColor(null);
-    setQty(1);
-
-    const timer = setTimeout(() => {
-      if (!active) return;
-      setProduct(getProductById(id));
-      setLoading(false);
-    }, 150);
-
-    return () => {
-      active = false;
-      clearTimeout(timer);
-    };
-  }, [id]);
-
-  const { products: related } = useProducts(
-    product ? { category: product.category } : {},
-    5,
-  );
-  const relatedFiltered = related.filter((p) => p.id !== id).slice(0, 4);
-
-  if (loading) {
+  if (d.error) {
     return (
-      <div className="pt-32 px-6 md:px-12 lg:px-16">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
-          <div className="aspect-[3/4] bg-secondary animate-pulse" />
-          <div className="space-y-4 pt-8">
-            <div className="h-10 bg-secondary animate-pulse" />
-            <div className="h-6 w-1/3 bg-secondary animate-pulse" />
-            <div className="h-32 bg-secondary animate-pulse" />
-          </div>
-        </div>
+      <div className="mm-container flex flex-col items-center py-32 text-center">
+        <p className="mm-display text-3xl">{d.error}</p>
+        <button onClick={d.retry} className="mm-eyebrow mt-4 underline">Try again</button>
+      </div>
+    );
+  }
+  if (d.notFound) {
+    return (
+      <div className="mm-container flex flex-col items-center py-32 text-center">
+        <p className="mm-display text-4xl">Piece not found</p>
+        <Link to="/shop" className="mm-eyebrow mt-4 underline">Back to shop</Link>
+      </div>
+    );
+  }
+  if (!d.product) {
+    return (
+      <div className="mm-container py-32">
+        <div className="aspect-[3/4] w-full max-w-md animate-pulse bg-muted" />
       </div>
     );
   }
 
-  if (!product) {
-    return (
-      <div className="pt-40 px-6 text-center">
-        <p className="text-muted-foreground mb-6">Produit introuvable.</p>
-        <Link
-          to="/shop"
-          className="text-[11px] uppercase tracking-luxe-sm border-b border-foreground pb-1"
-        >
-          Retour à la boutique
-        </Link>
-      </div>
-    );
-  }
+  const images = productGallery(d.product);
+  const mainImage = d.focusMediaUrl || images[activeImage]?.url || images[0]?.url;
+  const sizeGroup = optionGroups.find((g) => /size|taille/i.test(g.name));
+  const selectedSize = sizeGroup?.choices.find((c) => c.selected)?.name;
 
-  const hasDiscount =
-    product.discount_price && product.discount_price < product.price;
-  const finalPrice = product.discount_price || product.price;
+  const waText = `Hello Mode Market, I am interested in ${d.product.name} - ${d.product.slug}. Is this available in ${selectedSize || "standard size"}?`;
+  const waUrl = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(waText)}`;
 
-  const handleAdd = () => {
-    addItem(product, { size, color, quantity: qty });
-    setAdded(true);
-    setTimeout(() => setAdded(false), 2500);
-  };
-
-  const handleWhatsApp = () => {
-    const msg = `Bonjour ÉLÉGANCE, je souhaite commander :\n\n${product.name}\nTaille: ${size}\nCouleur: ${color}\nQuantité: ${qty}\nPrix: ${finalPrice.toLocaleString("fr-TN")} TND`;
-    window.open(whatsappLink(msg), "_blank");
+  const buyNow = async () => {
+    if (!d.canAdd || d.adding || cartLoading) return;
+    const result = await d.submit();
+    if (result === null) return;
+    await checkout();
   };
 
   return (
-    <div className="pt-20">
-      {/* Breadcrumb */}
-      <div className="px-6 md:px-12 lg:px-16 py-6">
-        <button
-          onClick={() => navigate(-1)}
-          className="inline-flex items-center gap-2 text-[11px] uppercase tracking-luxe-sm text-muted-foreground hover:text-foreground transition-colors"
-        >
-          <ArrowLeft size={14} /> Retour
-        </button>
-      </div>
+    <div className="mm-container py-6 lg:py-10">
+      <Link to="/shop" className="mm-eyebrow mb-6 inline-flex items-center gap-1.5 transition hover:text-foreground">
+        <ChevronLeft className="h-3.5 w-3.5" /> Back
+      </Link>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-16 px-6 md:px-12 lg:px-16 pb-20">
-        {/* Gallery */}
-        <div className="lg:sticky lg:top-28 lg:self-start">
-          <div className="aspect-[3/4] overflow-hidden bg-secondary mb-4">
-            <motion.img
-              key={activeImg}
-              initial={{ opacity: 0.4 }}
-              animate={{ opacity: 1 }}
-              transition={{ duration: 0.5 }}
-              src={product.images?.[activeImg]}
-              alt={product.name}
-              className="w-full h-full object-cover"
-            />
-          </div>
-          {product.images?.length > 1 && (
-            <div className="flex gap-3">
-              {product.images.map((img, i) => (
+      <div className="grid gap-8 lg:grid-cols-2 lg:gap-16">
+        <div className="flex flex-col-reverse gap-4 lg:flex-row">
+          {images.length > 1 && (
+            <div className="flex gap-3 lg:flex-col">
+              {images.map((im, i) => (
                 <button
                   key={i}
-                  onClick={() => setActiveImg(i)}
-                  className={`w-20 h-24 overflow-hidden border transition-all ${
-                    activeImg === i
-                      ? "border-foreground"
-                      : "border-transparent opacity-60 hover:opacity-100"
-                  }`}
+                  onClick={() => setActiveImage(i)}
+                  className={`relative h-20 w-16 shrink-0 overflow-hidden bg-muted ${mainImage === im.url && !d.focusMediaUrl ? "ring-2 ring-foreground" : "ring-1 ring-border"}`}
                 >
-                  <img
-                    src={img}
-                    alt={`${product.name} ${i + 1}`}
-                    className="w-full h-full object-cover"
-                  />
+                  <Image src={im.url} alt={im.altText || ""} fittingType="fill" className="h-full w-full object-cover" />
                 </button>
               ))}
             </div>
           )}
+          <div className="relative flex-1 overflow-hidden bg-muted">
+            <div className="aspect-[3/4]">
+              {mainImage && <Image src={mainImage} alt={d.product.name} fittingType="fill" className="h-full w-full object-cover" />}
+            </div>
+          </div>
         </div>
 
-        {/* Info */}
-        <div className="lg:pt-4">
-          <Reveal>
-            {product.subcategory && (
-              <p className="text-[11px] uppercase tracking-luxe text-accent mb-4">
-                {product.subcategory}
-              </p>
-            )}
-            <h1 className="font-heading text-4xl md:text-5xl font-light mb-6 leading-tight">
-              {product.name}
-            </h1>
+        <div className="lg:py-2">
+          <div className="lg:sticky lg:top-24">
+            <p className="mm-eyebrow">{d.product.sku ? `SKU · ${d.product.sku}` : "Mode Market"}</p>
+            <h1 className="mm-display mt-2 text-3xl sm:text-4xl lg:text-5xl">{d.product.name}</h1>
+            <div className="mt-4 flex items-baseline gap-3">
+              <span className="text-2xl font-medium">{d.price}</span>
+              {d.compareAtPrice && <span className="text-base text-muted-foreground line-through">{d.compareAtPrice}</span>}
+            </div>
 
-            <div className="flex items-baseline gap-3 mb-8">
-              <span className="font-heading text-3xl font-light">
-                {finalPrice.toLocaleString("fr-TN")} TND
-              </span>
-              {hasDiscount && (
-                <span className="text-lg text-muted-foreground line-through">
-                  {product.price.toLocaleString("fr-TN")} TND
-                </span>
+            {d.product.plainDescription && (
+              <div
+                className="mt-5 max-w-prose text-sm leading-relaxed text-muted-foreground [&_*]:text-muted-foreground"
+                dangerouslySetInnerHTML={{ __html: d.product.plainDescription }}
+              />
+            )}
+
+            <div className="mt-7 space-y-5">
+              {optionGroups.map((g) => (
+                <div key={g.id}>
+                  <span className="mm-eyebrow mb-2 block">{g.name}</span>
+                  {g.isColor ? (
+                    <div className="flex flex-wrap gap-2.5">
+                      {g.choices.map((c) => (
+                        <button
+                          key={c.choiceId}
+                          disabled={!c.inStock}
+                          onClick={() => d.selectOption(g.id, c.choiceId)}
+                          title={c.name}
+                          className={`h-9 w-9 rounded-full border ${c.selected ? "ring-2 ring-foreground ring-offset-2" : "border-border"} ${!c.inStock ? "opacity-40" : ""}`}
+                          style={{ backgroundColor: c.colorCode || "#ccc" }}
+                        />
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="flex flex-wrap gap-2">
+                      {g.choices.map((c) => (
+                        <button
+                          key={c.choiceId}
+                          disabled={!c.inStock}
+                          onClick={() => d.selectOption(g.id, c.choiceId)}
+                          className={`min-w-11 border px-4 py-2.5 text-xs uppercase tracking-wider transition ${c.selected ? "border-foreground bg-foreground text-background" : "border-border text-foreground hover:border-foreground"} ${!c.inStock ? "opacity-40 line-through" : ""}`}
+                        >
+                          {c.name}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ))}
+              {d.options.length > 0 && !d.variant && (
+                <p className="text-xs uppercase tracking-[0.15em] text-muted-foreground">Select options to continue</p>
               )}
             </div>
 
-            {product.description && (
-              <p className="text-muted-foreground leading-relaxed mb-8 max-w-md">
-                {product.description}
-              </p>
-            )}
-
-            {product.material && (
-              <p className="text-sm text-muted-foreground mb-8">
-                <span className="text-foreground">Matière:</span>{" "}
-                {product.material}
-              </p>
-            )}
-
-            {/* Sizes */}
-            {product.sizes?.length > 0 && (
-              <div className="mb-8">
-                <p className="text-[11px] uppercase tracking-luxe-sm mb-4">
-                  Taille
-                </p>
-                <div className="flex flex-wrap gap-3">
-                  {product.sizes.map((s) => (
-                    <button
-                      key={s}
-                      onClick={() => setSize(s)}
-                      className={`min-w-[48px] h-12 px-4 border text-sm transition-all ${
-                        size === s
-                          ? "border-foreground bg-foreground text-background"
-                          : "border-border hover:border-foreground"
-                      }`}
-                    >
-                      {s}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Colors */}
-            {product.colors?.length > 0 && (
-              <div className="mb-8">
-                <p className="text-[11px] uppercase tracking-luxe-sm mb-4">
-                  Couleur
-                </p>
-                <div className="flex flex-wrap gap-3">
-                  {product.colors.map((c) => (
-                    <button
-                      key={c}
-                      onClick={() => setColor(c)}
-                      className={`px-4 h-10 border text-sm transition-all ${
-                        color === c
-                          ? "border-foreground bg-secondary"
-                          : "border-border hover:border-foreground"
-                      }`}
-                    >
-                      {c}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Quantity */}
-            <div className="mb-8">
-              <p className="text-[11px] uppercase tracking-luxe-sm mb-4">
-                Quantité
-              </p>
+            <div className="mt-7">
+              <span className="mm-eyebrow mb-2 block">Quantity</span>
               <div className="inline-flex items-center border border-border">
-                <button
-                  onClick={() => setQty((q) => Math.max(1, q - 1))}
-                  className="w-12 h-12 flex items-center justify-center hover:bg-secondary transition-colors"
-                  aria-label="Diminuer"
-                >
-                  <Minus size={14} />
-                </button>
-                <span className="w-12 text-center text-sm">{qty}</span>
-                <button
-                  onClick={() => setQty((q) => q + 1)}
-                  className="w-12 h-12 flex items-center justify-center hover:bg-secondary transition-colors"
-                  aria-label="Augmenter"
-                >
-                  <Plus size={14} />
-                </button>
+                <button onClick={() => d.setQuantity(Math.max(1, (Number(d.quantity) || 1) - 1))} className="px-3 py-2.5 transition hover:bg-muted"><Minus className="h-3.5 w-3.5" /></button>
+                <span className="w-12 text-center text-sm">{d.quantity || 1}</span>
+                <button onClick={() => d.setQuantity((Number(d.quantity) || 1) + 1)} className="px-3 py-2.5 transition hover:bg-muted"><Plus className="h-3.5 w-3.5" /></button>
               </div>
             </div>
 
-            {/* CTAs */}
-            <div className="flex flex-col gap-3 max-w-md">
+            <div className="mt-7 flex flex-col gap-3">
               <button
-                onClick={handleAdd}
-                className="h-14 bg-foreground text-background text-[11px] uppercase tracking-luxe-sm hover:bg-accent transition-colors duration-500 flex items-center justify-center gap-2"
+                onClick={() => d.submit()}
+                disabled={!d.canAdd || d.adding}
+                className="flex items-center justify-center gap-2 bg-foreground py-4 text-[12px] uppercase tracking-[0.2em] text-background transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
               >
-                {added ? (
-                  <>
-                    <Check size={16} /> Ajouté au panier
-                  </>
-                ) : (
-                  "Ajouter au Panier"
-                )}
+                <ShoppingBag className="h-4 w-4" /> {d.adding ? "Adding…" : "Add to cart"}
               </button>
+              <a
+                href={waUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="flex items-center justify-center gap-2 border border-gold bg-gold py-4 text-[12px] uppercase tracking-[0.2em] text-gold-foreground transition hover:opacity-90"
+              >
+                <MessageCircle className="h-4 w-4" /> Order via WhatsApp
+              </a>
               <button
-                onClick={handleWhatsApp}
-                className="h-14 border border-foreground text-foreground text-[11px] uppercase tracking-luxe-sm hover:bg-foreground hover:text-background transition-colors duration-500 flex items-center justify-center gap-2"
+                onClick={buyNow}
+                disabled={!d.canAdd || d.adding || cartLoading}
+                className="border border-foreground py-4 text-[12px] uppercase tracking-[0.2em] transition hover:bg-foreground hover:text-background disabled:opacity-40"
               >
-                <MessageCircle size={16} /> Commander via WhatsApp
+                {cartLoading ? "Processing…" : "Buy now"}
               </button>
-              <p className="text-xs text-muted-foreground text-center mt-2">
-                Service concierge · {WHATSAPP_DISPLAY}
-              </p>
             </div>
-          </Reveal>
+
+            {!d.inStock && d.variant && (
+              <p className="mt-3 text-xs uppercase tracking-[0.15em] text-destructive">Out of stock</p>
+            )}
+          </div>
         </div>
       </div>
-
-      {/* Related */}
-      {relatedFiltered.length > 0 && (
-        <section className="px-6 md:px-12 lg:px-16 py-20 md:py-28 bg-secondary">
-          <div className="text-center mb-12">
-            <Reveal>
-              <p className="text-[11px] uppercase tracking-luxe text-accent mb-4">
-                Vous aimerez aussi
-              </p>
-              <h2 className="font-heading text-4xl md:text-5xl font-light">
-                Pièces Associées
-              </h2>
-            </Reveal>
-          </div>
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-x-4 md:gap-x-6 gap-y-10">
-            {relatedFiltered.map((p, i) => (
-              <ProductCard key={p.id} product={p} index={i} />
-            ))}
-          </div>
-        </section>
-      )}
     </div>
   );
 }
