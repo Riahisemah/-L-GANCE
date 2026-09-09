@@ -4,42 +4,35 @@ import { queryClientInstance } from "@/lib/query-client";
 import { BrowserRouter as Router, Route, Routes } from "react-router-dom";
 import PageNotFound from "./lib/PageNotFound";
 import ScrollToTop from "./components/ScrollToTop";
+// Add page imports here
 import { CartProvider } from "@/context/CartContext";
-import Layout from "@/components/layout/Layout";
+import Layout from "@/components/Layout";
 import Home from "@/pages/Home";
 import Shop from "@/pages/Shop";
-import Women from "@/pages/Women";
-import Men from "@/pages/Men";
-import NewCollection from "@/pages/NewCollection";
 import ProductDetail from "@/pages/ProductDetail";
-import Cart from "@/pages/Cart";
-import Checkout from "@/pages/Checkout";
-import About from "@/pages/About";
-import Contact from "@/pages/Contact";
-// Add page imports here
+
+// This is a public storefront with no login gate, so the Base44-hosted
+// auth/public-settings layer that used to wrap the app has been removed —
+// it only worked inside the Base44 editor and isn't available locally.
+const StorefrontApp = () => (
+  <CartProvider>
+    <Routes>
+      <Route element={<Layout />}>
+        <Route path="/" element={<Home />} />
+        <Route path="/shop" element={<Shop />} />
+        <Route path="/product/:slug" element={<ProductDetail />} />
+      </Route>
+      <Route path="*" element={<PageNotFound />} />
+    </Routes>
+  </CartProvider>
+);
 
 function App() {
   return (
     <QueryClientProvider client={queryClientInstance}>
       <Router>
         <ScrollToTop />
-        <CartProvider>
-          <Routes>
-            <Route element={<Layout />}>
-              <Route path="/" element={<Home />} />
-              <Route path="/shop" element={<Shop />} />
-              <Route path="/women" element={<Women />} />
-              <Route path="/men" element={<Men />} />
-              <Route path="/new" element={<NewCollection />} />
-              <Route path="/product/:id" element={<ProductDetail />} />
-              <Route path="/cart" element={<Cart />} />
-              <Route path="/checkout" element={<Checkout />} />
-              <Route path="/about" element={<About />} />
-              <Route path="/contact" element={<Contact />} />
-              <Route path="*" element={<PageNotFound />} />
-            </Route>
-          </Routes>
-        </CartProvider>
+        <StorefrontApp />
       </Router>
       <Toaster />
     </QueryClientProvider>

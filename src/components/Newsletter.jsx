@@ -1,6 +1,5 @@
-import React, { useState } from "react";
-import { motion } from "framer-motion";
-import { Check } from "lucide-react";
+import { useState } from "react";
+import { ArrowRight } from "lucide-react";
 
 export default function Newsletter() {
   const [email, setEmail] = useState("");
@@ -8,50 +7,47 @@ export default function Newsletter() {
 
   const submit = (e) => {
     e.preventDefault();
-    if (!email) return;
+    if (!email.trim()) return;
     setDone(true);
     setEmail("");
-    setTimeout(() => setDone(false), 4000);
   };
 
   return (
-    <section className="px-6 md:px-12 lg:px-16 py-24 md:py-32 bg-secondary">
-      <div className="max-w-2xl mx-auto text-center">
-        <p className="text-[11px] uppercase tracking-luxe text-accent mb-5">
-          L'Atelier
-        </p>
-        <h2 className="font-heading text-4xl md:text-6xl font-light mb-6 leading-tight">
-          Rejoignez la Maison
+    <section className="border-y border-border bg-secondary">
+      <div className="mm-container flex flex-col items-center gap-6 py-20 text-center lg:py-28">
+        <p className="mm-eyebrow">The Dispatch</p>
+        <h2 className="mm-display max-w-2xl text-4xl sm:text-5xl lg:text-6xl">
+          Join the archive. Receive private previews.
         </h2>
-        <p className="text-muted-foreground mb-10 max-w-md mx-auto">
-          Recevez nos collections en avant-première, les ventes privées et les
-          histoires de notre atelier.
+        <p className="max-w-md text-sm text-muted-foreground">
+          Be the first to access new arrivals, flash deals and members-only
+          promotions — delivered weekly.
         </p>
-        <form
-          onSubmit={submit}
-          className="flex flex-col sm:flex-row gap-3 max-w-md mx-auto"
-        >
-          <input
-            type="email"
-            required
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            placeholder="Votre adresse e-mail"
-            className="flex-1 bg-transparent border-b border-foreground/30 focus:border-foreground px-1 py-3 text-sm outline-none transition-colors placeholder:text-muted-foreground"
-          />
-          <button
-            type="submit"
-            className="bg-foreground text-background px-8 py-3 text-[11px] uppercase tracking-luxe-sm hover:bg-accent transition-colors duration-500 whitespace-nowrap"
+        {done ? (
+          <p className="mm-eyebrow text-gold">
+            Thank you — you're on the list.
+          </p>
+        ) : (
+          <form
+            onSubmit={submit}
+            className="flex w-full max-w-md items-center gap-3 border-b border-foreground pb-3"
           >
-            {done ? (
-              <span className="flex items-center gap-2 justify-center">
-                <Check size={14} /> Inscrit
-              </span>
-            ) : (
-              "S'inscrire"
-            )}
-          </button>
-        </form>
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="Your email address"
+              className="w-full bg-transparent text-base outline-none placeholder:text-muted-foreground"
+            />
+            <button
+              type="submit"
+              aria-label="Subscribe"
+              className="transition hover:opacity-60"
+            >
+              <ArrowRight className="h-5 w-5" />
+            </button>
+          </form>
+        )}
       </div>
     </section>
   );

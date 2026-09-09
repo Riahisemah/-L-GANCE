@@ -1,82 +1,117 @@
-import React from "react";
 import { Link } from "react-router-dom";
-import { motion } from "framer-motion";
+import { useProductCard } from "@/hooks/useProductCard";
+import { useCart } from "@/context/CartContext";
+import { Image } from "@/components/ui/image";
+import { Plus } from "lucide-react";
 
-export default function ProductCard({ product, index = 0 }) {
-  const hasDiscount =
-    product.discount_price && product.discount_price < product.price;
-  const img = product.images?.[0];
+export default function ProductCard({ product }) {
+  const { addToCart, loading } = useCart();
+  const {
+    isSoldOut,
+    leftBadges,
+    promoBadge,
+    priceDisplay,
+    compareAtDisplay,
+    colors,
+    optionLabel,
+    isQuickAddable,
+    image,
+    hoverImage,
+  } = useProductCard(product);
+
+  const handleQuickAdd = (e) => {
+    e.preventDefault();
+    if (isQuickAddable && !loading) addToCart(product.id);
+  };
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 30 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true, margin: "-60px" }}
-      transition={{
-        duration: 0.9,
-        delay: (index % 3) * 0.1,
-        ease: [0.22, 1, 0.36, 1],
-      }}
-      className="group"
-    >
-      <Link to={`/product/${product.id}`} className="block">
-        <div className="relative overflow-hidden bg-secondary aspect-[3/4] mb-5">
-          {img && (
-            <img
-              src={img}
-              alt={product.name}
-              loading="lazy"
-              className="w-full h-full object-cover transition-transform duration-[1.4s] ease-[cubic-bezier(0.22,1,0.36,1)] group-hover:scale-110"
-            />
+    <Link to={`/product/${product.slug}`} className="group block">
+      <div className="relative aspect-[3/4] overflow-hidden bg-muted">
+        {image && (
+          <Image
+            src={image}
+            alt={product.name || "Product"}
+            fittingType="fill"
+            className="h-full w-full object-cover transition-transform duration-[900ms] ease-out group-hover:scale-105"
+          />
+        )}
+        {hoverImage && (
+          <Image
+            src={hoverImage}
+            alt=""
+            fittingType="fill"
+            className="absolute inset-0 h-full w-full object-cover opacity-0 transition-opacity duration-500 group-hover:opacity-100"
+          />
+        )}
+
+        <div className="absolute left-3 top-3 flex flex-col gap-1.5">
+          {promoBadge && (
+            <span className="mm-chip bg-gold px-2.5 py-1 text-gold-foreground">
+              {promoBadge.label}
+            </span>
           )}
-          {/* Badges */}
-          <div className="absolute top-4 left-4 flex flex-col gap-2">
-            {product.is_new && (
-              <span className="bg-background/90 text-foreground text-[10px] tracking-luxe-sm px-3 py-1 uppercase">
-                Nouveau
-              </span>
-            )}
-            {hasDiscount && (
-              <span className="bg-accent text-background text-[10px] tracking-luxe-sm px-3 py-1 uppercase">
-                Promo
-              </span>
-            )}
-          </div>
-          {/* Quick view overlay */}
-          <div className="absolute inset-x-0 bottom-0 p-4 translate-y-full group-hover:translate-y-0 transition-transform duration-500 ease-[cubic-bezier(0.22,1,0.36,1)]">
-            <div className="bg-background/95 text-foreground text-center text-[11px] tracking-luxe-sm uppercase py-3">
-              Voir le produit
-            </div>
-          </div>
+        </div>
+        <div className="absolute right-3 top-3 flex flex-col items-end gap-1.5">
+          {leftBadges.map((b) => (
+            <span
+              key={b.type}
+              className="mm-chip border border-border bg-background/90 px-2.5 py-1 text-foreground"
+            >
+              {b.label}
+            </span>
+          ))}
         </div>
 
-        <div className="space-y-1">
-          {product.subcategory && (
-            <p className="text-[10px] uppercase tracking-luxe-sm text-muted-foreground">
-              {product.subcategory}
-            </p>
-          )}
-          <h3 className="font-heading text-xl font-light leading-snug">
+        {isSoldOut && (
+          <div className="absolute inset-0 flex items-center justify-center bg-background/55 backdrop-blur-[2px]">
+            <span className="mm-chip border border-foreground px-4 py-1.5">
+              Sold Out
+            </span>
+          </div>
+        )}
+
+        {isQuickAddable && !isSoldOut && (
+          <button
+            onClick={handleQuickAdd}
+            disabled={loading}
+            className="absolute bottom-3 left-3 right-3 flex items-center justify-center gap-2 bg-foreground py-3 text-[11px] uppercase tracking-[0.2em] text-background opacity-0 translate-y-2 transition-all duration-300 group-hover:opacity-100 group-hover:translate-y-0 disabled:opacity-50"
+          >
+            <Plus className="h-3.5 w-3.5" /> Quick Add
+          </button>
+        )}
+      </div>
+
+      <div className="pt-3">
+        <div className="flex items-start justify-between gap-3">
+          <h3 className="text-sm font-medium leading-snug transition group-hover:underline">
             {product.name}
           </h3>
-          <div className="flex items-baseline gap-2">
-            {hasDiscount ? (
-              <>
-                <span className="text-accent font-medium">
-                  {product.discount_price.toLocaleString("fr-TN")} TND
-                </span>
-                <span className="text-sm text-muted-foreground line-through">
-                  {product.price.toLocaleString("fr-TN")} TND
-                </span>
-              </>
-            ) : (
-              <span className="font-medium">
-                {product.price.toLocaleString("fr-TN")} TND
+          <div className="flex shrink-0 items-baseline gap-2">
+            {compareAtDisplay && (
+              <span className="text-xs text-muted-foreground line-through">
+                {compareAtDisplay}
               </span>
             )}
+            <span className="text-sm font-medium">{priceDisplay}</span>
           </div>
         </div>
-      </Link>
-    </motion.div>
+        <div className="mt-1.5 flex items-center justify-between">
+          <p className="text-[11px] uppercase tracking-[0.12em] text-muted-foreground">
+            {optionLabel || "Ready to ship"}
+          </p>
+          {colors.length > 0 && (
+            <div className="flex items-center gap-1">
+              {colors.slice(0, 5).map((c) => (
+                <span
+                  key={c}
+                  className="h-3 w-3 rounded-full border border-border"
+                  style={{ backgroundColor: c }}
+                />
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    </Link>
   );
 }
